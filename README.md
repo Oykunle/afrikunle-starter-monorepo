@@ -1,46 +1,39 @@
-# Afrikunle — Multilingual Python Learning (Starter Monorepo)
+# 🧠 Afrikunle — Learn to Code in Your Own Language
 
-This starter lets you ship **mobile (iOS/Android)** and **web (PWA)** from a single codebase using **Expo (React Native + Web)**, plus a **Flask API** backend.
+[![Expo](https://img.shields.io/badge/Expo-1B1F23?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
+[![React Native](https://img.shields.io/badge/React_Native-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev)
+[![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
 
-## Contents
-- `apps/expo-app` — React Native (Expo) app that also builds for Web
-- `backend/flask-api` — Python Flask API with sample `/api/lessons` endpoints
-- `packages/i18n` — Shared translation JSON files
+---
 
-## Quick Start
+## 🌍 Vision
 
-### Prereqs
-- Node 18+, npm or yarn
-- Python 3.10+
-- (Optional) Expo Go app on your phone
+Afrikunle is a learning platform designed to help people **learn to code in their own language**.
 
-### Frontend (Expo: mobile + web)
-```bash
-cd apps/expo-app
-npm install
-npm run start         # press `i` for iOS (Mac), `a` for Android, `w` for Web
-```
-To build web PWA:
-```bash
-npm run web
-```
+We believe that coding should be accessible to everyone — not only in English.  
+Afrikunle helps users learn **Python** in **English 🇬🇧**, **French 🇫🇷**, and soon **Yorùbá**, **Swahili**, and **Hausa**.
 
-### Backend (Flask)
-```bash
-cd backend/flask-api
-python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-flask --app app run --debug
-```
-The API will run at `http://127.0.0.1:5000`.
+> “If you can think in your language, you can code in your language.”
 
-### Configure the Expo app to talk to your API
-Edit `apps/expo-app/src/config.ts` and set `API_BASE_URL` to your backend URL.
+---
 
-## Next Steps
-- Add Firebase Auth (email/Google/phone) to `apps/expo-app`
-- Replace in-memory lessons with a database (Firestore or Postgres)
-- Invite collaborators on GitHub; use PRs and issues to coordinate
-- Add CI (GitHub Actions) for lint/build/test
+## ✨ Key Features
 
-Happy building!
+### 🌐 Multilingual Learning
+Instantly switch between English and French lessons.  
+Each lesson is stored with translations, and more languages will be added soon.
+
+### 🗣️ Voice Tutor
+Afrikunle uses `expo-speech` to **speak lessons aloud** — it’s your personal AI coding tutor that can explain each Python concept in your native language.
+
+### 💻 Real Python Code Execution
+Write and run Python directly inside the app!  
+Afrikunle connects to a secure Flask backend that safely executes your code in a sandboxed environment.
+
+### 🎚 Voice Speed & Personalization
+Change the tutor’s speaking speed (🐢 slow, ⚖️ normal, ⚡ fast), and personalize your experience with your name and language preference.
+
+---
+
+## 🧩 Project Structure
