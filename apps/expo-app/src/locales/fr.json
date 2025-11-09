@@ -1,0 +1,13 @@
+{
+  "appName": "Afrikunle",
+  "tagline": "Apprends à coder dans ta langue",
+  "language.select": "Choisis ta langue",
+  "languages.english": "Anglais",
+  "languages.french": "Français",
+  "home.startLearning": "Commencer",
+  "lesson.intro.title": "Introduction à Python",
+  "lesson.intro.body": "Python est un langage accessible utilisé pour le web, la data, l’IA et plus.",
+  "quiz.start": "Démarrer le quiz",
+  "quiz.correct": "Correct ! 🎉",
+  "quiz.tryAgain": "Réessaie"
+}

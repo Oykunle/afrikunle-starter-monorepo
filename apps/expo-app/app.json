@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Afrikunle",
+    "slug": "afrikunle",
+    "scheme": "afrikunle",
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [],
+    "orientation": "portrait"
+  }
+}
