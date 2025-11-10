@@ -27,9 +27,17 @@ LESSONS = [
     }
 ]
 
+# ---- Health check ----
+@app.get("/health")
+def health():
+    """Simple health endpoint for mobile/web connectivity test"""
+    return jsonify({"ok": True, "service": "afrikunle-api"}), 200
+
+
 @app.get("/")
 def root():
     return jsonify({"status": "ok", "service": "afrikunle-api"})
+
 
 @app.get("/api/lessons")
 def list_lessons():
@@ -55,6 +63,7 @@ def list_lessons():
         })
     return jsonify(out)
 
+
 @app.get("/api/lessons/<int:lid>")
 def get_lesson(lid: int):
     lang = request.args.get("lang", "en")
@@ -72,21 +81,32 @@ def get_lesson(lid: int):
             })
     return jsonify({"error": "not found"}), 404
 
-# ---- NEW: Safe Python runner ----
+
+# ---- Safe Python runner ----
 @app.post("/api/run")
 def run_code():
     data = request.get_json() or {}
     code = data.get("code", "")
 
     # Basic safety guard: block dangerous stuff
-    blocked = ["import", "open(", "os.", "sys.", "eval(", "exec(", "__", "subprocess", "socket", "shutil", "requests"]
+    blocked = [
+        "import", "open(", "os.", "sys.", "eval(", "exec(", "__",
+        "subprocess", "socket", "shutil", "requests"
+    ]
     if any(b in code for b in blocked):
         return jsonify({"output": "⚠️ Unsafe code blocked"}), 400
 
     buf = io.StringIO()
     try:
         # Only allow safe built-ins
-        safe_builtins = {"print": print, "range": range, "len": len, "min": min, "max": max, "sum": sum}
+        safe_builtins = {
+            "print": print,
+            "range": range,
+            "len": len,
+            "min": min,
+            "max": max,
+            "sum": sum
+        }
         with contextlib.redirect_stdout(buf):
             exec(code, {"__builtins__": safe_builtins}, {})
         out = buf.getvalue().strip()
@@ -94,6 +114,7 @@ def run_code():
     except Exception:
         err = traceback.format_exc(limit=1)
         return jsonify({"output": f"❌ Error:\n{err}"}), 400
+
 
 if __name__ == "__main__":
     # Use 5001 to avoid macOS AirPlay conflict on 5000

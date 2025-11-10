@@ -1,173 +1,146 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Button,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
-import { useRouter } from "expo-router"; // ✅ Added navigation support
+import { View, Text, Button, ActivityIndicator, Alert, ScrollView } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Speech from "expo-speech";
+import { API_URL, logApiConfig } from "@/src/config";
 
-// Mock available levels
-const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
-type Level = typeof LEVELS[number];
+type Lang = "en" | "fr";
+type Lesson = {
+  id?: number | string;
+  title?: string;
+  body?: string;
+  level?: string;
+  quiz?: { question?: string; answer?: string };
+};
 
-export default function Lessons() {
-  const router = useRouter(); // ✅ Initialize router for navigation
-  const [lessons, setLessons] = useState<any[]>([]);
-  const [lang, setLang] = useState<"en" | "fr">("en");
-  const [level, setLevel] = useState<Level>("Beginner");
+// ⏱️ Helper for timeout-safe fetch
+function fetchWithTimeout(resource: string, opts: RequestInit = {}, ms = 8000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  return fetch(resource, { ...opts, signal: controller.signal }).finally(() => clearTimeout(id));
+}
+
+export default function LessonScreen() {
+  const { id = "1", lang = "en" } = useLocalSearchParams<{ id?: string; lang?: Lang }>();
+  const router = useRouter();
+
+  const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
-    const fetchLessons = async () => {
+    logApiConfig();
+
+    async function load() {
+      setLoading(true);
+      setErr(null);
+
       try {
-        const res = await fetch("http://10.222.234.35:5001/api/lessons");; // ✅ Use your IP + backend port
-        const data = await res.json();
-        setLessons(data);
-      } catch (error) {
-        console.error("❌ Error fetching lessons:", error);
-        Alert.alert("Connection Error", "Could not fetch lessons from the server.");
+        const urls = [
+          `${API_URL}/api/lessons/${id}?lang=${lang}`,
+          `${API_URL}/api/lessons?lang=${lang}`,
+          `${API_URL}/api/lesson/${id}?lang=${lang}`,
+          `${API_URL}/api/lesson?lang=${lang}`,
+        ];
+
+        let data: any | null = null;
+        for (const url of urls) {
+          console.log("📡 Trying:", url);
+          try {
+            const res = await fetchWithTimeout(url, {}, 8000);
+            console.log("↩️ Status:", res.status, "for", url);
+            if (!res.ok) continue;
+            data = await res.json();
+            console.log("✅ Parsed JSON from", url, data);
+            break;
+          } catch (e) {
+            console.log("⏳ Request failed/aborted for", url, e);
+          }
+        }
+
+        if (!data) throw new Error("No endpoint returned data");
+
+        const current: Lesson = Array.isArray(data) ? data[0] : data;
+        if (!current || (!current.title && !current.body))
+          throw new Error("Unexpected lesson data structure");
+
+        setLesson(current);
+      } catch (e: any) {
+        console.error("❌ Lesson fetch error:", e?.message || e);
+        setErr(e?.message || "Failed to load lesson");
+        Alert.alert("Error", "Could not load lesson details.");
       } finally {
         setLoading(false);
       }
-    };
-    fetchLessons();
-  }, []);
+    }
 
-  // 🎓 Filter lessons by selected level
-  const filteredLessons = lessons.filter(
-    (lesson) => !lesson.level || lesson.level === level
-  );
+    load();
+  }, [id, lang]);
+
+  const speakText = (text?: string) => {
+    if (!text) return;
+    try {
+      Speech.stop();
+      Speech.speak(text, {
+        language: (lang as Lang) === "fr" ? "fr-FR" : "en-US",
+        pitch: 1.0,
+        rate: 1.0,
+      });
+      setIsSpeaking(true);
+    } catch (e) {
+      console.error("Speech error:", e);
+      Alert.alert("Speech Error", "This language may not be supported on your device.");
+    }
+  };
+
+  const stopSpeech = () => {
+    Speech.stop();
+    setIsSpeaking(false);
+  };
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text>Loading lessons...</Text>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+        <Text>Loading lesson...</Text>
       </View>
     );
   }
 
+  if (!lesson) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+        <Text style={{ marginBottom: 8 }}>No lesson found.</Text>
+        {err ? <Text style={{ color: "crimson", textAlign: "center" }}>{err}</Text> : null}
+        <Button title="Go back" onPress={() => router.back()} />
+      </View>
+    );
+  }
+
+  const title = lesson.title || "Lesson";
+  const body = lesson.body || "";
+  const quiz = lesson.quiz;
+
   return (
-    <View style={styles.container}>
-      {/* 🌍 Language Header */}
-      <Text style={styles.header}>
-        Afrikunle Lessons ({lang === "en" ? "English" : "Français"})
-      </Text>
+    <ScrollView style={{ flex: 1, padding: 20, backgroundColor: "#fff" }}>
+      <Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 10 }}>{title}</Text>
+      <Text style={{ fontSize: 16, color: "#333", marginBottom: 20 }}>{body}</Text>
 
-      {/* 🔁 Language Toggle */}
-      <Button
-        title={lang === "en" ? "Switch to French" : "Passer en anglais"}
-        onPress={() => setLang(lang === "en" ? "fr" : "en")}
-      />
-
-      {/* 🎓 Level Selector */}
-      <View style={styles.levelContainer}>
-        {LEVELS.map((l) => (
-          <TouchableOpacity
-            key={l}
-            style={[styles.levelButton, level === l && styles.levelButtonActive]}
-            onPress={() => {
-              setLevel(l);
-              Alert.alert(
-                "Level Changed",
-                l === "Beginner"
-                  ? "Learning Python as if you were 10 years old 👶🏾!"
-                  : l === "Intermediate"
-                  ? "Now we’re thinking like a real programmer 👩🏾‍💻"
-                  : "Deep dive — you’re now coding like a pro ⚡️"
-              );
-            }}
-          >
-            <Text
-              style={[
-                styles.levelText,
-                level === l && styles.levelTextActive,
-              ]}
-            >
-              {l}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
+        <Button title={isSpeaking ? "🔁 Replay" : "🔊 Read Aloud"} onPress={() => speakText(body)} />
+        <Button title="⏹ Stop" onPress={stopSpeech} color="#FF3B30" />
       </View>
 
-      {/* 🧠 Lessons List */}
-      <FlatList
-        data={filteredLessons}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
-              router.push({
-                pathname: `/lesson/${item.id}`, // ✅ navigate to detail
-                params: { level, lang },
-              })
-            }
-          >
-            <Text style={styles.title}>{item.title[lang]}</Text>
+      {quiz && (
+        <View style={{ backgroundColor: "#f2f2f2", padding: 15, borderRadius: 10, marginTop: 10 }}>
+          <Text style={{ fontWeight: "600", marginBottom: 5 }}>Quiz:</Text>
+          <Text>{quiz.question}</Text>
+          <Text style={{ color: "#007AFF", marginTop: 5 }}>👉 {quiz.answer}</Text>
+        </View>
+      )}
 
-            <Text style={styles.body}>
-              {level === "Beginner"
-                ? "👶🏾 " +
-                  (lang === "en"
-                    ? "Imagine explaining this to a 10-year-old: "
-                    : "Explique-le comme à un enfant de 10 ans : ") +
-                  item.body[lang]
-                : item.body[lang]}
-            </Text>
-
-            <View style={styles.quizBox}>
-              <Text style={styles.quizQ}>{item.quiz.question[lang]}</Text>
-              <Text style={styles.quizA}>👉 {item.quiz.answer}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
+      <Button title="← Back to Lessons" onPress={() => router.push("/")} />
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: { fontSize: 24, fontWeight: "bold", marginBottom: 15, textAlign: "center" },
-
-  levelContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginVertical: 10,
-  },
-  levelButton: {
-    borderWidth: 1,
-    borderColor: "#007AFF",
-    padding: 8,
-    borderRadius: 8,
-  },
-  levelButtonActive: {
-    backgroundColor: "#007AFF",
-  },
-  levelText: {
-    color: "#007AFF",
-    fontWeight: "500",
-  },
-  levelTextActive: {
-    color: "white",
-  },
-
-  card: {
-    backgroundColor: "#f2f2f2",
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-  title: { fontSize: 18, fontWeight: "bold", marginBottom: 5 },
-  body: { fontSize: 15, color: "#333" },
-  quizBox: { marginTop: 10, backgroundColor: "#fff", padding: 10, borderRadius: 10 },
-  quizQ: { fontWeight: "600" },
-  quizA: { color: "#007AFF", marginTop: 5 },
-});

@@ -8,6 +8,12 @@
       "output": "static"
     },
     "plugins": [],
-    "orientation": "portrait"
+    "orientation": "portrait",
+    "android": {
+      "package": "com.anonymous.afrikunle"
+    },
+    "ios": {
+      "bundleIdentifier": "com.anonymous.afrikunle"
+    }
   }
 }

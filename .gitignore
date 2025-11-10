@@ -1,1 +1,22 @@
-.expo
+# Node / Expo
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+*.log
+
+# Python / Flask
+__pycache__/
+*.pyc
+instance/
+.env
+.venv/
+
+# Mac system files
+.DS_Store
+
+# Local configs
+.env.local
+.env.development
+.env.production
