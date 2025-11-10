@@ -102,13 +102,12 @@ npx expo start -c
 EXPO_PUBLIC_API_URL=http://YOUR_IP:5001
 
 
-
-	8.	📈 Roadmap
-Version                                         Milestone                                                                                   Status
+📈 Roadmap
+Version                     Milestone                                                              Status
 v1.0.0
-Stable                          foundation (Flask + Expo + Voice)                                                                           ✅ Done
-v1.1.0                       UI improvements, lesson navigation, cloud deployment                                                        🧩 In progress
-v2.0.0                       Add interactive coding exercises + more languages                                                             🚀 Planned
+Stable               foundation (Flask + Expo + Voice)                                            ✅ Done
+v1.1.0               UI improvements, lesson navigation, cloud deployment                         🧩 In progress
+v2.0.0               Add interactive coding exercises + more languages                            🚀 Planned
 
 
 
