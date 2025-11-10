@@ -43,7 +43,7 @@ export default function LessonDetail() {
   useEffect(() => {
     const fetchLesson = async () => {
       try {
-        const res = await fetch(`http://10.0.0.244:5001/api/lessons/${id}?lang=${lang}`);
+        const res = await fetch(`http://10.222.234.35:5001/api/lessons/${id}?lang=${lang}`);
         const data = await res.json();
         setLesson(data);
         setCode(data.quiz?.answer || "");
@@ -91,7 +91,7 @@ export default function LessonDetail() {
   const handleRunCode = async () => {
     setOutput("⏳ Running...");
     try {
-      const res = await fetch("http://10.0.0.244:5001/api/run", {
+      const res = await fetch("http://10.222.234.35:5001/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),

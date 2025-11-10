@@ -25,7 +25,7 @@ export default function Lessons() {
   useEffect(() => {
     const fetchLessons = async () => {
       try {
-        const res = await fetch("http://10.0.0.244:5001/api/lessons"); // ✅ Use your IP + backend port
+        const res = await fetch("http://10.222.234.35:5001/api/lessons");; // ✅ Use your IP + backend port
         const data = await res.json();
         setLessons(data);
       } catch (error) {
