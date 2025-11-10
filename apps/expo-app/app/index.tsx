@@ -1,146 +1,366 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Button, ActivityIndicator, Alert, ScrollView } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Switch,
+  Image,
+  Animated,
+  StyleSheet,
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Speech from "expo-speech";
-import { API_URL, logApiConfig } from "@/src/config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Localization from "expo-localization";
+import { API_URL } from "../src/config";
+import { LightTheme, DarkTheme } from "../src/theme";
 
-type Lang = "en" | "fr";
-type Lesson = {
-  id?: number | string;
-  title?: string;
-  body?: string;
-  level?: string;
-  quiz?: { question?: string; answer?: string };
-};
+export default function PythonShell() {
+  const [code, setCode] = useState("print('Hello, Afrikunle!')");
+  const [output, setOutput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [lang, setLang] = useState<"en" | "fr">("en");
+  const [darkMode, setDarkMode] = useState(false);
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const [availableVoices, setAvailableVoices] = useState<any[]>([]);
 
-// ⏱️ Helper for timeout-safe fetch
-function fetchWithTimeout(resource: string, opts: RequestInit = {}, ms = 8000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), ms);
-  return fetch(resource, { ...opts, signal: controller.signal }).finally(() => clearTimeout(id));
-}
+  const Colors = darkMode ? DarkTheme : LightTheme;
 
-export default function LessonScreen() {
-  const { id = "1", lang = "en" } = useLocalSearchParams<{ id?: string; lang?: Lang }>();
-  const router = useRouter();
+  const text = {
+    en: {
+      welcome: "Welcome to Afrikunle 🧠",
+      subtitle: "Learn and run Python in your own language!",
+      title: "🐍 Python Shell",
+      description: "Type your Python code below and press Run.",
+      run: "▶ Run Code",
+      running: "Running...",
+      output: "Output",
+      error: "⚠️ Error connecting to the server.",
+      read: "🔊 Read Aloud",
+      stop: "⏹ Stop",
+      mode: "Dark Mode",
+    },
+    fr: {
+      welcome: "Bienvenue sur Afrikunle 🧠",
+      subtitle: "Apprends et exécute du Python dans ta propre langue !",
+      title: "🐍 Shell Python",
+      description: "Tape ton code Python ci-dessous et appuie sur « Exécuter ».",
+      run: "▶ Exécuter le code",
+      running: "Exécution...",
+      output: "Résultat",
+      error: "⚠️ Erreur de connexion au serveur.",
+      read: "🔊 Lire à voix haute",
+      stop: "⏹ Arrêter",
+      mode: "Mode sombre",
+    },
+  };
+  const t = text[lang];
 
-  const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
+  // 🧩 Load settings (theme + language)
   useEffect(() => {
-    logApiConfig();
-
-    async function load() {
-      setLoading(true);
-      setErr(null);
-
+    const loadSettings = async () => {
       try {
-        const urls = [
-          `${API_URL}/api/lessons/${id}?lang=${lang}`,
-          `${API_URL}/api/lessons?lang=${lang}`,
-          `${API_URL}/api/lesson/${id}?lang=${lang}`,
-          `${API_URL}/api/lesson?lang=${lang}`,
-        ];
+        const storedLang = await AsyncStorage.getItem("lang");
+        const storedTheme = await AsyncStorage.getItem("darkMode");
 
-        let data: any | null = null;
-        for (const url of urls) {
-          console.log("📡 Trying:", url);
-          try {
-            const res = await fetchWithTimeout(url, {}, 8000);
-            console.log("↩️ Status:", res.status, "for", url);
-            if (!res.ok) continue;
-            data = await res.json();
-            console.log("✅ Parsed JSON from", url, data);
-            break;
-          } catch (e) {
-            console.log("⏳ Request failed/aborted for", url, e);
-          }
+        if (storedLang) {
+          setLang(storedLang as "en" | "fr");
+        } else {
+          // 🌍 Auto-detect system language
+          const deviceLang = Localization.locale.startsWith("fr") ? "fr" : "en";
+          setLang(deviceLang);
+          await AsyncStorage.setItem("lang", deviceLang);
         }
 
-        if (!data) throw new Error("No endpoint returned data");
-
-        const current: Lesson = Array.isArray(data) ? data[0] : data;
-        if (!current || (!current.title && !current.body))
-          throw new Error("Unexpected lesson data structure");
-
-        setLesson(current);
-      } catch (e: any) {
-        console.error("❌ Lesson fetch error:", e?.message || e);
-        setErr(e?.message || "Failed to load lesson");
-        Alert.alert("Error", "Could not load lesson details.");
-      } finally {
-        setLoading(false);
+        if (storedTheme) setDarkMode(storedTheme === "true");
+      } catch (err) {
+        console.warn("⚠️ Failed to load saved settings:", err);
       }
+    };
+    loadSettings();
+  }, []);
+
+  // 💾 Save settings whenever they change
+  useEffect(() => {
+    AsyncStorage.setItem("lang", lang);
+    AsyncStorage.setItem("darkMode", darkMode.toString());
+  }, [lang, darkMode]);
+
+  // 🎬 Animate theme change
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start(() => fadeAnim.setValue(0));
+  }, [darkMode]);
+
+  // 🔍 Load available voices
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      const synth = window.speechSynthesis;
+      const updateVoices = () => setAvailableVoices(synth.getVoices());
+      synth.onvoiceschanged = updateVoices;
+      updateVoices();
+    } else {
+      Speech.getAvailableVoicesAsync().then(setAvailableVoices);
     }
+  }, []);
 
-    load();
-  }, [id, lang]);
-
-  const speakText = (text?: string) => {
-    if (!text) return;
+  // 🧠 Python Execution
+  const runCode = async () => {
+    setLoading(true);
+    setOutput("");
     try {
-      Speech.stop();
-      Speech.speak(text, {
-        language: (lang as Lang) === "fr" ? "fr-FR" : "en-US",
-        pitch: 1.0,
-        rate: 1.0,
+      const res = await fetch(`${API_URL}/api/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
       });
-      setIsSpeaking(true);
-    } catch (e) {
-      console.error("Speech error:", e);
-      Alert.alert("Speech Error", "This language may not be supported on your device.");
+      const data = await res.json();
+      setOutput(data.output || "No output");
+    } catch (err) {
+      setOutput(t.error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const stopSpeech = () => {
-    Speech.stop();
-    setIsSpeaking(false);
+  // 🗣️ Voice Controls (auto voice matching)
+  const handleSpeak = async () => {
+    try {
+      const textToSpeak = `${t.output}: ${output || code}`;
+
+      if (Platform.OS === "web") {
+        const synth = window.speechSynthesis;
+        const voice =
+          availableVoices.find((v) =>
+            v.lang.toLowerCase().startsWith(lang === "fr" ? "fr" : "en")
+          ) || availableVoices[0];
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.voice = voice;
+        utterance.lang = lang === "fr" ? "fr-FR" : "en-US";
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        synth.cancel();
+        synth.speak(utterance);
+      } else {
+        const voices = await Speech.getAvailableVoicesAsync();
+        const match = voices.find((v) =>
+          v.language.toLowerCase().startsWith(lang === "fr" ? "fr" : "en")
+        );
+
+        const langCode = match ? match.language : lang === "fr" ? "fr-FR" : "en-US";
+        Speech.stop();
+        Speech.speak(textToSpeak, {
+          language: langCode,
+          pitch: 1.0,
+          rate: 0.8,
+        });
+      }
+    } catch (error) {
+      console.warn("🗣️ Speech error:", error);
+    }
   };
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-        <Text>Loading lesson...</Text>
-      </View>
-    );
-  }
-
-  if (!lesson) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
-        <Text style={{ marginBottom: 8 }}>No lesson found.</Text>
-        {err ? <Text style={{ color: "crimson", textAlign: "center" }}>{err}</Text> : null}
-        <Button title="Go back" onPress={() => router.back()} />
-      </View>
-    );
-  }
-
-  const title = lesson.title || "Lesson";
-  const body = lesson.body || "";
-  const quiz = lesson.quiz;
+  const handleStop = () => {
+    if (Platform.OS === "web") {
+      window.speechSynthesis.cancel();
+    } else {
+      Speech.stop();
+    }
+  };
 
   return (
-    <ScrollView style={{ flex: 1, padding: 20, backgroundColor: "#fff" }}>
-      <Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 10 }}>{title}</Text>
-      <Text style={{ fontSize: 16, color: "#333", marginBottom: 20 }}>{body}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background, padding: 20 }}>
+      <Animated.View
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          opacity: fadeAnim,
+          backgroundColor: darkMode ? "#000" : "#fff",
+        }}
+      />
 
-      <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
-        <Button title={isSpeaking ? "🔁 Replay" : "🔊 Read Aloud"} onPress={() => speakText(body)} />
-        <Button title="⏹ Stop" onPress={stopSpeech} color="#FF3B30" />
+      {/* 🧠 Top Bar */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 25,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Image
+            source={{
+              uri: "https://i.ibb.co/dtZbYgD/afrikunle-logo.png",
+            }}
+            style={{ width: 35, height: 35, borderRadius: 8 }}
+          />
+          <Text style={{ fontSize: 20, fontWeight: "700", color: Colors.text }}>Afrikunle</Text>
+        </View>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+          <Text style={{ color: Colors.muted }}>{t.mode}</Text>
+          <Switch
+            value={darkMode}
+            onValueChange={setDarkMode}
+            thumbColor={darkMode ? Colors.primary : "#f4f3f4"}
+            trackColor={{ false: "#ccc", true: Colors.secondary }}
+          />
+        </View>
       </View>
 
-      {quiz && (
-        <View style={{ backgroundColor: "#f2f2f2", padding: 15, borderRadius: 10, marginTop: 10 }}>
-          <Text style={{ fontWeight: "600", marginBottom: 5 }}>Quiz:</Text>
-          <Text>{quiz.question}</Text>
-          <Text style={{ color: "#007AFF", marginTop: 5 }}>👉 {quiz.answer}</Text>
-        </View>
-      )}
+      {/* 🌍 Language Switch */}
+      <View style={{ flexDirection: "row", justifyContent: "center", gap: 10, marginBottom: 20 }}>
+        {["en", "fr"].map((lng) => (
+          <TouchableOpacity
+            key={lng}
+            onPress={() => setLang(lng as "en" | "fr")}
+            style={{
+              backgroundColor: lang === lng ? Colors.primary : Colors.card,
+              borderColor: Colors.border,
+              borderWidth: 1,
+              borderRadius: 8,
+              paddingVertical: 8,
+              paddingHorizontal: 20,
+            }}
+          >
+            <Text
+              style={{
+                color: lang === lng ? "#fff" : Colors.text,
+                fontWeight: "600",
+              }}
+            >
+              {lng === "en" ? "🇬🇧 English" : "🇫🇷 Français"}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-      <Button title="← Back to Lessons" onPress={() => router.push("/")} />
-    </ScrollView>
+      {/* Header */}
+      <View style={{ alignItems: "center", marginBottom: 25 }}>
+        <Text style={{ fontSize: 26, fontWeight: "bold", color: Colors.text }}>{t.welcome}</Text>
+        <Text style={{ fontSize: 16, color: Colors.muted, marginTop: 5, textAlign: "center" }}>
+          {t.subtitle}
+        </Text>
+      </View>
+
+      {/* Code Editor */}
+      <View
+        style={{
+          backgroundColor: Colors.card,
+          padding: 15,
+          borderRadius: 12,
+          shadowColor: "#000",
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          marginBottom: 20,
+        }}
+      >
+        <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 8, color: Colors.text }}>
+          {t.title}
+        </Text>
+        <Text style={{ color: Colors.muted, marginBottom: 10 }}>{t.description}</Text>
+
+        <TextInput
+          multiline
+          style={{
+            borderColor: Colors.border,
+            borderWidth: 1,
+            borderRadius: 10,
+            padding: 10,
+            height: 140,
+            textAlignVertical: "top",
+            fontFamily: "Courier",
+            backgroundColor: Colors.background,
+            color: Colors.text,
+          }}
+          value={code}
+          onChangeText={setCode}
+        />
+
+        <TouchableOpacity
+          onPress={runCode}
+          disabled={loading}
+          style={{
+            backgroundColor: Colors.primary,
+            borderRadius: 10,
+            paddingVertical: 12,
+            marginTop: 15,
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 16 }}>
+            {loading ? t.running : t.run}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Output */}
+      <View
+        style={{
+          backgroundColor: Colors.card,
+          padding: 15,
+          borderRadius: 12,
+          shadowColor: "#000",
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+        }}
+      >
+        <Text style={{ fontWeight: "600", fontSize: 16, marginBottom: 5, color: Colors.text }}>
+          {t.output}:
+        </Text>
+        <ScrollView
+          style={{
+            maxHeight: 160,
+            borderColor: Colors.border,
+            borderWidth: 1,
+            borderRadius: 8,
+            padding: 10,
+            backgroundColor: Colors.background,
+          }}
+        >
+          <Text style={{ fontFamily: "Courier", color: Colors.text }}>{output}</Text>
+        </ScrollView>
+
+        {/* Voice Buttons */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-evenly",
+            marginTop: 15,
+          }}
+        >
+          <TouchableOpacity
+            onPress={handleSpeak}
+            style={{
+              backgroundColor: Colors.secondary,
+              borderRadius: 8,
+              paddingVertical: 10,
+              paddingHorizontal: 20,
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>{t.read}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleStop}
+            style={{
+              backgroundColor: Colors.danger,
+              borderRadius: 8,
+              paddingVertical: 10,
+              paddingHorizontal: 20,
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>{t.stop}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }

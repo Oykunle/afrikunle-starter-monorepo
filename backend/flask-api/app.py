@@ -1,13 +1,13 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import io
-import contextlib
 import traceback
+import contextlib
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# ---- Lessons (multi-level + i18n ready) ----
+# ---- Lessons (multi-level + i18n) ----
 LESSONS = [
     {
         "id": 1,
@@ -27,21 +27,16 @@ LESSONS = [
     }
 ]
 
-# ---- Health check ----
 @app.get("/health")
 def health():
-    """Simple health endpoint for mobile/web connectivity test"""
     return jsonify({"ok": True, "service": "afrikunle-api"}), 200
-
 
 @app.get("/")
 def root():
     return jsonify({"status": "ok", "service": "afrikunle-api"})
 
-
 @app.get("/api/lessons")
 def list_lessons():
-    # Optional filtering: /api/lessons?level=Beginner&lang=fr
     level = request.args.get("level")
     lang = request.args.get("lang", "en")
 
@@ -63,7 +58,6 @@ def list_lessons():
         })
     return jsonify(out)
 
-
 @app.get("/api/lessons/<int:lid>")
 def get_lesson(lid: int):
     lang = request.args.get("lang", "en")
@@ -81,24 +75,19 @@ def get_lesson(lid: int):
             })
     return jsonify({"error": "not found"}), 404
 
-
 # ---- Safe Python runner ----
 @app.post("/api/run")
 def run_code():
     data = request.get_json() or {}
     code = data.get("code", "")
 
-    # Basic safety guard: block dangerous stuff
-    blocked = [
-        "import", "open(", "os.", "sys.", "eval(", "exec(", "__",
-        "subprocess", "socket", "shutil", "requests"
-    ]
+    # quick safety guard (demo-safe)
+    blocked = ["import", "open(", "os.", "sys.", "eval(", "exec(", "__", "subprocess", "socket", "shutil", "requests"]
     if any(b in code for b in blocked):
-        return jsonify({"output": "⚠️ Unsafe code blocked"}), 400
+        return jsonify({"output": "", "error": "⚠️ Unsafe code blocked"}), 400
 
     buf = io.StringIO()
     try:
-        # Only allow safe built-ins
         safe_builtins = {
             "print": print,
             "range": range,
@@ -110,12 +99,10 @@ def run_code():
         with contextlib.redirect_stdout(buf):
             exec(code, {"__builtins__": safe_builtins}, {})
         out = buf.getvalue().strip()
-        return jsonify({"output": out if out else "✅ Code ran successfully!"})
+        return jsonify({"output": out if out else "✅ Code ran successfully!", "error": ""}), 200
     except Exception:
         err = traceback.format_exc(limit=1)
-        return jsonify({"output": f"❌ Error:\n{err}"}), 400
-
+        return jsonify({"output": "", "error": f"{err}"}), 400
 
 if __name__ == "__main__":
-    # Use 5001 to avoid macOS AirPlay conflict on 5000
     app.run(host="0.0.0.0", port=5001, debug=True)
