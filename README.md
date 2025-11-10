@@ -1,5 +1,6 @@
 # 🧠 Afrikunle — Learn to Code in Your Own Language  
-> _“If you can think in your language, you can code in your language.”_
+> _“If you can think in your language, you can code in your language.”_  
+> _Afrikunle brings the **vibe** back to coding — fun, cultural, and made for everyone._
 
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/Oykunle/afrikunle-starter-monorepo?label=Latest%20Release&color=blue)](https://github.com/Oykunle/afrikunle-starter-monorepo/releases/latest)
 [![Made with Expo](https://img.shields.io/badge/Expo-SDK%2052-black?logo=expo&logoColor=white)](https://expo.dev/)
@@ -10,8 +11,9 @@
 ---
 
 ## 🌍 Vision
-Afrikunle is a learning platform that helps people **learn Python in their own languages.**  
-Our mission is to make programming accessible and inclusive — breaking the English barrier in coding education.
+Afrikunle isn’t just another coding app — it’s **vibe coding**.  
+We teach Python in your own language, with your rhythm and your culture in mind.  
+Our mission is to make programming **accessible, expressive, and inspiring** for everyone — not just those fluent in English.
 
 **Languages supported:**  
 🇬🇧 English • 🇫🇷 French  
@@ -103,11 +105,13 @@ EXPO_PUBLIC_API_URL=http://YOUR_IP:5001
 
 
 📈 Roadmap
-Version                     Milestone                                                              Status
+Version                     Milestone                                                    Status
 v1.0.0
-Stable               foundation (Flask + Expo + Voice)                                            ✅ Done
-v1.1.0               UI improvements, lesson navigation, cloud deployment                         🧩 In progress
-v2.0.0               Add interactive coding exercises + more languages                            🚀 Planned
+Stable               foundation (Flask + Expo + Voice)                                   ✅ Done
+v1.1.0               UI improvements, lesson navigation, cloud deployment                🧩 In progress
+v2.0.0               Add interactive coding exercises + more languages                   🚀 Planned
+v3.0.0         AI tutor integration — smart multilingual assistant for learners          🤖 Vision
+
 
 
 
@@ -125,8 +129,16 @@ Afrikunle is open for collaboration!
 If you believe coding should be accessible to everyone —
 join the mission to bring programming education in every language.
 
+🤖 **Built with AI Collaboration**
+
+Afrikunle was developed with the help of modern AI tools (including GPT-5) — used for code generation, architecture design, and multilingual content planning.  
+Oye believes AI should **empower human creativity**, not replace it.
+
 
 © 2025 Afrikunle Project — Built with ❤️ by Oye
+
+
+
 
 
 
